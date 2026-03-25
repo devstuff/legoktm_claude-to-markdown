@@ -1,12 +1,12 @@
 {
     "manifest_version": 3,
     "name": "Claude to Markdown",
-    "version": "2025.3.11",
+    "version": "2026.03.25",
     "description": "Exports Claude chat conversations as Markdown",
-    "homepage_url": "https://legoktm.com/view/Claude_to_Markdown",
+    "homepage_url": "https://github.com/devstuff/legoktm_claude-to-markdown",
     "browser_specific_settings": {
       "gecko": {
-        "id": "{518f7e4f-a2c6-4587-af34-e06f3dbbf523}",
+        "id": "{4731b079-b110-40bf-8767-f29694be51e8}",
         "strict_min_version": "109.0"
       }
     },
