@@ -1,0 +1,3 @@
+# Publishing files
+.amo-upload-uuid
+web-ext-artifacts/*.xpi
