@@ -14,7 +14,7 @@ or patched build.
 > gecko add-on ID (`{518f7e4f-a2c6-4587-af34-e06f3dbbf523}`) registered against
 > the original author's AMO account. Signing a build with that same ID under a
 > different account would create a conflict — Mozilla's signing API ties IDs to
-> accounts. The `personal` branch therefore uses a distinct gecko ID, version,
+> accounts. The `devstuff/personal` branch therefore uses a distinct gecko ID, version,
 > and `homepage_url` so the two builds are independent and can coexist without
 > interfering with each other or with the upstream author's AMO listing.
 
@@ -74,10 +74,10 @@ npm install -g web-ext
 web-ext --version   # verify install
 ```
 
-## Step 4 — Clone the personal branch and build
+## Step 4 — Clone the devstuff/personal branch and build
 
 ```bash
-git clone --branch personal https://github.com/devstuff/legoktm_claude-to-markdown.git
+git clone --branch devstuff/personal https://github.com/devstuff/legoktm_claude-to-markdown.git
 cd legoktm_claude-to-markdown
 bash build.sh
 ```
