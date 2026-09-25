@@ -9,23 +9,71 @@ document.addEventListener('DOMContentLoaded', function() {
     const statusDiv = document.getElementById('status');
     const claudeIdDiv = document.getElementById('claude-id');
 
-    async function updateContent(data) {
-      if (data.lastIntercepted) {
-        title.value = data.lastIntercepted.content.name;
-        textArea.value = buildMarkdown(data.lastIntercepted.content);
-        timestampDiv.textContent = `Last updated: ${new Date(data.lastIntercepted.timestamp).toLocaleString()}`;
-        claudeIdDiv.textContent = data.lastIntercepted.content.uuid;
-        if (await getGistId(data.lastIntercepted.content.uuid)) {
+    // The conversation being displayed: the one on the active tab, or the one
+    // last navigated to when the tab is not a conversation page. Following
+    // whatever arrived most recently instead is what made hovering the sidebar
+    // swap the transcript out from under you.
+    let displayedUuid = null;
+    let tabConversationUuid = null;
+
+    async function updateContent(entry) {
+      const content = entry && entry.content;
+      dlog("popup.updateContent", {
+        hasEntry: Boolean(entry),
+        tabUuid: c2mdShortUuid(tabConversationUuid),
+        uuid: c2mdShortUuid(content && content.uuid),
+        name: content && typeof content.name === "string" ? content.name.slice(0, 48) : null,
+        msgs: content && Array.isArray(content.chat_messages)
+          ? content.chat_messages.length
+          : (content && "chat_messages" in content ? "NOT_ARRAY" : "KEY_ABSENT")
+      });
+
+      if (entry) {
+        title.value = content.name;
+        let markdown;
+        try {
+          markdown = buildMarkdown(content);
+        } catch (e) {
+          dlog("popup.buildMarkdownThrew", { error: String(e), stack: String(e && e.stack).slice(0, 400) });
+          throw e;
+        }
+        dlog("popup.rendered", {
+          uuid: c2mdShortUuid(content.uuid),
+          markdownLength: markdown.length,
+          blank: markdown.trim().length === 0
+        });
+        textArea.value = markdown;
+        timestampDiv.textContent = `Last updated: ${new Date(entry.timestamp).toLocaleString()}`;
+        claudeIdDiv.textContent = content.uuid;
+        if (await getGistId(content.uuid)) {
           gistButton.textContent = 'Update Gist';
         } else {
           gistButton.textContent = 'Create Gist';
         }
       } else {
-        textArea.value = 'No content intercepted yet.';
+        title.value = '';
+        textArea.value = tabConversationUuid
+          ? 'This conversation has not been loaded yet. Click Refresh Page.'
+          : 'No conversation opened yet.';
         timestampDiv.textContent = '';
         claudeIdDiv.textContent = '';
         gistButton.textContent = 'Create Gist';
       }
+    }
+
+    // Prefer the conversation on screen; otherwise the one last navigated to,
+    // so opening the popup from the conversation list still shows the chat you
+    // were last reading rather than whichever entry the pointer crossed.
+    async function loadContentForActiveTab(tabUrl) {
+      const resolved = await resolveDisplayConversation(tabUrl);
+      displayedUuid = resolved.uuid;
+      tabConversationUuid = resolved.fromTab ? resolved.uuid : null;
+      dlog("popup.resolved", {
+        uuid: c2mdShortUuid(resolved.uuid),
+        fromTab: resolved.fromTab,
+        cached: Boolean(resolved.entry)
+      });
+      await updateContent(resolved.entry);
     }
 
     function showStatus(message, isError = false) {
@@ -87,8 +135,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Load initial content and check for GitHub token
-    chrome.storage.local.get(['lastIntercepted', 'githubToken'], async function(data) {
-      await updateContent(data);
+    chrome.tabs.query({active: true, currentWindow: true}, async function(tabs) {
+      const tabUrl = tabs && tabs[0] ? tabs[0].url : null;
+      const tabUuid = conversationUuidFromPageUrl(tabUrl);
+      dlog("popup.opened", {
+        tabUrl: tabUrl ? c2mdShortUrl(tabUrl) : null,
+        tabUuid: c2mdShortUuid(tabUuid)
+      });
+      // Covers a navigation the background script missed, such as one that
+      // happened while its event page was suspended.
+      if (tabUuid) {
+        await markConversationViewed(tabUuid);
+      }
+      await loadContentForActiveTab(tabUrl);
+    });
+
+    chrome.storage.local.get(['githubToken'], function(data) {
       if (data.githubToken) {
         gistButton.classList.add('show');
         gistButton.classList.remove('hide');
@@ -97,8 +159,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Listen for storage changes
     chrome.storage.onChanged.addListener(async function(changes, namespace) {
-      if (changes.lastIntercepted) {
-        await updateContent({ lastIntercepted: changes.lastIntercepted.newValue });
+      // Only a change to the conversation being displayed may redraw the popup.
+      // Hovering the sidebar writes other keys, and reacting to those is
+      // exactly what replaced the transcript with a conversation the user never
+      // opened. With nothing displayed, nothing is watched, so hovering over an
+      // unopened conversation does nothing at all.
+      const relevantKey = displayedUuid ? conversationKey(displayedUuid) : null;
+      const relevantChange = relevantKey ? changes[relevantKey] : undefined;
+
+      dlog("popup.storageChanged", {
+        keys: Object.keys(changes),
+        watching: relevantKey || null,
+        redraw: Boolean(relevantChange)
+      });
+
+      if (relevantChange) {
+        await updateContent(relevantChange.newValue || null);
       }
       if (changes.githubToken) {
         if (changes.githubToken.newValue) {
@@ -114,6 +190,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Refresh button functionality
     refreshButton.addEventListener('click', function() {
       chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        dlog("popup.refreshClicked", {
+          tabUrl: tabs && tabs[0] ? c2mdShortUrl(tabs[0].url) : null
+        });
         if (tabs[0]) {
           chrome.tabs.reload(tabs[0].id);
         }

@@ -32,7 +32,7 @@
       "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.github.com; font-src 'self'; object-src 'none'; media-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
     },
     "background": {
-      "scripts": ["debug.js", "background.js"]
+      "scripts": ["debug.js", "conversations.js", "background.js"]
     },
     "action": {
       "default_popup": "popup.html",

@@ -10,7 +10,7 @@ For example, here's the conversation used to create this extension: <https://gis
 
 When you load a conversation, the extension observes the JSON returned by the server and converts it to Markdown.
 
-It adds a "c.ai md" icon to your toolbar; clicking on it will reveal your most recently loaded transcript.
+It adds a "c.ai md" icon to your toolbar; clicking on it reveals the transcript of the conversation open in the current tab, or of the conversation you most recently opened if the tab is showing something else.
 
 It cannot (yet) follow a live conversation, so before exporting, you will need to reload your Claude browser tab.
 
@@ -23,8 +23,12 @@ Claude to Markdown does not transmit your data to myself nor any third-party ser
 
 The following data is stored locally on your browser:
 
-* The last Claude conversation you loaded solely so it can be displayed back to you.
-  It will be replaced when you load a different conversation.
+* Recently loaded Claude conversations, solely so they can be displayed back to
+  you. At most 10 are kept, for at most 7 days, and the oldest are discarded
+  first. This includes conversations Claude itself fetched in the background:
+  moving the pointer across an entry in the sidebar makes the page load that
+  conversation, whether or not you open it. Only conversations you actually
+  opened are ever displayed.
 * If you use the GitHub integration, a mapping of the Claude chat UUID and
   Gist URL will be stored for 30 days, so the existing Gist can be updated.
 
