@@ -1,5 +1,21 @@
+/* Without border-box, a width:100% child is 100% of the content box *plus* its
+   own padding and border -- 622px inside a 600px box. That 22px overflow is
+   what put a horizontal scrollbar on the panel, and the scrollbar's height then
+   pushed the document past the panel height, adding a vertical scrollbar and
+   hiding the timestamp underneath.
+   Note that the panel cannot be sized from the html element or with
+   overflow:hidden: Firefox measures document content to size the popup, so
+   doing either collapses it to a default width. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
-  width: 600px;
+  /* 630 - 30 of padding leaves the same 600px of content as before, so the
+     panel's outer width is unchanged at 646px including default body margins. */
+  width: 630px;
   padding: 15px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -20,6 +36,11 @@ body {
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  /* Its own scrollbars, for a transcript longer than the box. */
+  overflow: auto;
+  /* The drag handle cannot make a fixed panel any bigger, so dragging it only
+     ever pushed content out of view. */
+  resize: none;
 }
 
 .header {
