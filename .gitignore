@@ -1,6 +1,7 @@
 # Publishing files
 .amo-upload-uuid
 web-ext-artifacts/*.xpi
+web-ext-artifacts/*.zip
 
 # Local development
 dev-run.log
