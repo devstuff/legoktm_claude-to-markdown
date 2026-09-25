@@ -8,6 +8,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const settingsButton = document.getElementById('settingsButton');
     const statusDiv = document.getElementById('status');
     const claudeIdDiv = document.getElementById('claude-id');
+    const windowButton = document.getElementById('windowButton');
+
+    // One page serves both the toolbar panel and the detached window; the query
+    // parameter is what tells them apart.
+    const isWindowed = new URLSearchParams(location.search).has('windowed');
+
+    // The smallest size that still shows everything without scrolling, with room
+    // to spare: the layout's own floors are lower still (see popup.css), so
+    // dragging somewhat below this stays scroll-free too.
+    const WINDOW_MIN_WIDTH = 500;
+    const WINDOW_MIN_HEIGHT = 350;
+    const WINDOW_DEFAULT_WIDTH = 900;
+    const WINDOW_DEFAULT_HEIGHT = 700;
+    const WINDOW_GEOMETRY_KEY = 'windowGeometry';
 
     // The conversation being displayed: the one on the active tab, or the one
     // last navigated to when the tab is not a conversation page. Following
@@ -59,6 +73,43 @@ document.addEventListener('DOMContentLoaded', function() {
         claudeIdDiv.textContent = '';
         gistButton.textContent = 'Create Gist';
       }
+    }
+
+    // In the panel, the active tab is the Claude tab. In the detached window the
+    // active tab is this page itself, so the Claude tab has to be looked for
+    // among ordinary browser windows instead.
+    async function findTargetTab() {
+      if (!isWindowed) {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        return tabs[0] || null;
+      }
+      const tabs = await chrome.tabs.query({ active: true, windowType: 'normal' });
+      return tabs.find((tab) => conversationUuidFromPageUrl(tab.url))
+        || tabs.find((tab) => typeof tab.url === 'string' && tab.url.startsWith('https://claude.ai/'))
+        || null;
+    }
+
+    // Size is remembered; position deliberately is not. A position saved on one
+    // display can land where no screen exists on another, and an extension page
+    // cannot enumerate displays to check, so Firefox is left to place it.
+    async function saveWindowSize() {
+      const size = { width: window.outerWidth, height: window.outerHeight };
+      await chrome.storage.local.set({ [WINDOW_GEOMETRY_KEY]: size });
+      dlog('window.sizeSaved', size);
+    }
+
+    async function openInWindow() {
+      const data = await chrome.storage.local.get(WINDOW_GEOMETRY_KEY);
+      const saved = data[WINDOW_GEOMETRY_KEY] || {};
+      const created = await chrome.windows.create({
+        url: chrome.runtime.getURL('popup.html?windowed=1'),
+        type: 'popup',
+        width: Math.max(WINDOW_MIN_WIDTH, Number(saved.width) || WINDOW_DEFAULT_WIDTH),
+        height: Math.max(WINDOW_MIN_HEIGHT, Number(saved.height) || WINDOW_DEFAULT_HEIGHT)
+      });
+      dlog('window.opened', { id: created && created.id });
+      // The panel has been replaced by the window it just opened.
+      window.close();
     }
 
     // Prefer the conversation on screen; otherwise the one last navigated to,
@@ -134,11 +185,12 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
 
-    // Load initial content and check for GitHub token
-    chrome.tabs.query({active: true, currentWindow: true}, async function(tabs) {
-      const tabUrl = tabs && tabs[0] ? tabs[0].url : null;
+    async function loadContentFromTarget() {
+      const tab = await findTargetTab();
+      const tabUrl = tab ? tab.url : null;
       const tabUuid = conversationUuidFromPageUrl(tabUrl);
       dlog("popup.opened", {
+        windowed: isWindowed,
         tabUrl: tabUrl ? c2mdShortUrl(tabUrl) : null,
         tabUuid: c2mdShortUuid(tabUuid)
       });
@@ -148,7 +200,31 @@ document.addEventListener('DOMContentLoaded', function() {
         await markConversationViewed(tabUuid);
       }
       await loadContentForActiveTab(tabUrl);
-    });
+    }
+
+    // Load initial content and check for GitHub token
+    loadContentFromTarget();
+
+    if (isWindowed) {
+      document.body.classList.add('windowed');
+      // Nothing to open: this already is the window.
+      windowButton.classList.add('hide');
+
+      let sizeSaveTimer = null;
+      window.addEventListener('resize', function() {
+        clearTimeout(sizeSaveTimer);
+        sizeSaveTimer = setTimeout(function() {
+          saveWindowSize().catch((e) => dlog('window.sizeSaveFailed', { error: String(e) }));
+        }, 400);
+      });
+    } else {
+      windowButton.addEventListener('click', function() {
+        openInWindow().catch(function(e) {
+          dlog('window.openFailed', { error: String(e) });
+          showStatus(`Could not open a window: ${e.message}`, true);
+        });
+      });
+    }
 
     chrome.storage.local.get(['githubToken'], function(data) {
       if (data.githubToken) {
@@ -176,6 +252,13 @@ document.addEventListener('DOMContentLoaded', function() {
       if (relevantChange) {
         await updateContent(relevantChange.newValue || null);
       }
+      // A detached window stays open while you carry on browsing, so it follows
+      // the conversation you navigate to rather than pinning itself to whichever
+      // one was open when it was created. Only navigation changes this key, so
+      // hovering the sidebar still does nothing.
+      if (isWindowed && changes[LAST_VIEWED_KEY]) {
+        await loadContentFromTarget();
+      }
       if (changes.githubToken) {
         if (changes.githubToken.newValue) {
           gistButton.classList.add('show');
@@ -188,15 +271,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Refresh button functionality
-    refreshButton.addEventListener('click', function() {
-      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        dlog("popup.refreshClicked", {
-          tabUrl: tabs && tabs[0] ? c2mdShortUrl(tabs[0].url) : null
-        });
-        if (tabs[0]) {
-          chrome.tabs.reload(tabs[0].id);
-        }
+    refreshButton.addEventListener('click', async function() {
+      // Reloads the Claude tab, which from the detached window is a tab in
+      // another window rather than this page.
+      const tab = await findTargetTab();
+      dlog("popup.refreshClicked", {
+        windowed: isWindowed,
+        tabUrl: tab ? c2mdShortUrl(tab.url) : null
       });
+      if (tab) {
+        chrome.tabs.reload(tab.id);
+      } else {
+        showStatus('No Claude tab to reload.', true);
+      }
     });
 
     // Settings button functionality

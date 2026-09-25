@@ -88,16 +88,19 @@ body {
   background-color: #218838;
 }
 
-#settingsButton {
+#settingsButton,
+#windowButton {
   background-color: #6c757d;
   padding: 8px;
 }
 
-#settingsButton:hover {
+#settingsButton:hover,
+#windowButton:hover {
   background-color: #5a6268;
 }
 
-#settingsButton svg {
+#settingsButton svg,
+#windowButton svg {
   width: 16px;
   height: 16px;
 }
@@ -116,6 +119,53 @@ body {
 #status.error {
   background-color: #f8d7da;
   color: #721c24;
+}
+
+/* The detached window is where a resizable view has to live, because Firefox
+   will not let a toolbar panel be resized. The fluid layout is scoped to it so
+   the panel above keeps its fixed, known-good sizing. */
+body.windowed {
+  width: 100%;
+  /* Below the 500px the window opens at, deliberately. A CSS minimum applies to
+     the viewport while a window size is measured on the outside, so a minimum
+     equal to the window's own floor overflows by the width of the chrome: the
+     scrollbar that appears then steals width and triggers a second scrollbar,
+     which is the cascade this whole file exists to avoid. The slack absorbs it,
+     and means dragging a little under the opening size still does not scroll. */
+  min-width: 420px;
+  /* No min-height to go with it: 100vh is the viewport exactly, so the body can
+     never overflow vertically on its own, and the transcript's own min-height
+     below sets the point where a scrollbar honestly becomes necessary. */
+  height: 100vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body.windowed .header,
+body.windowed #jsonTitle,
+body.windowed #status,
+body.windowed .timestamp {
+  flex: 0 0 auto;
+}
+
+body.windowed .header {
+  /* Wraps rather than overflowing once the window nears its minimum width. */
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+body.windowed #jsonContent {
+  /* Absorbs the leftover height, so the transcript grows and shrinks with the
+     window and the timestamp below it moves with it, instead of both being
+     pinned to a 400px box. */
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 120px;
+}
+
+body.windowed .timestamp {
+  padding-top: 8px;
 }
 
 .show {

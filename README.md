@@ -12,6 +12,8 @@ When you load a conversation, the extension observes the JSON returned by the se
 
 It adds a "c.ai md" icon to your toolbar; clicking on it reveals the transcript of the conversation open in the current tab, or of the conversation you most recently opened if the tab is showing something else.
 
+Firefox does not allow a toolbar panel to be resized, so the panel has a button that opens the same view in a separate, resizable window. That window remembers its size, opens at 900x700, and will not open smaller than 500x350; it also follows along as you open other conversations.
+
 It cannot (yet) follow a live conversation, so before exporting, you will need to reload your Claude browser tab.
 
 If you set a GitHub token in the extension preferences, you can automatically save the generated
