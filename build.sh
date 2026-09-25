@@ -48,7 +48,8 @@ build_zip() {
     --exclude 'dev-run.sh' \
     --exclude 'dev-run.log' \
     --exclude 'web-ext-artifacts' \
-    --exclude 'web-ext-artifacts/*';
+    --exclude 'web-ext-artifacts/*' \
+    --exclude 'web-ext-config.cjs';
 
   echo "Built ${output}";
 }
