@@ -25,7 +25,7 @@ branch:
 
 | Field | Upstream value | This branch |
 | :--- | :--- | :--- |
-| `version` | `2025.3.11` | `2026.03.25` |
+| `version` | `2025.3.11` | `2026.9.25` |
 | `homepage_url` | `https://legoktm.com/view/Claude_to_Markdown` | `https://github.com/devstuff/legoktm_claude-to-markdown` |
 | `browser_specific_settings.gecko.id` | `{518f7e4f-a2c6-4587-af34-e06f3dbbf523}` | `{4731b079-b110-40bf-8767-f29694be51e8}` |
 
@@ -83,7 +83,7 @@ bash build.sh
 ```
 
 `build.sh` produces a zip file one level up from the repo, named after the
-version in `manifest.json`, e.g. `../claude-to-markdown-2026.03.25.zip`.
+version in `manifest.json`, e.g. `../claude-to-markdown-2026.9.25.zip`.
 
 ## Step 5 — Sign the extension
 
@@ -102,7 +102,7 @@ downloads the signed file. The output will look like:
 
 ```
 Your extension was validated and should be available for download:
-web-ext-artifacts/claude_to_markdown-2026.03.25-an+fx.xpi
+web-ext-artifacts/claude_to_markdown-2026.9.25-an+fx.xpi
 ```
 
 The `.xpi` file in `web-ext-artifacts/` is your signed, installable extension.

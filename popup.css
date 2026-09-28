@@ -1,5 +1,21 @@
+/* Without border-box, a width:100% child is 100% of the content box *plus* its
+   own padding and border -- 622px inside a 600px box. That 22px overflow is
+   what put a horizontal scrollbar on the panel, and the scrollbar's height then
+   pushed the document past the panel height, adding a vertical scrollbar and
+   hiding the timestamp underneath.
+   Note that the panel cannot be sized from the html element or with
+   overflow:hidden: Firefox measures document content to size the popup, so
+   doing either collapses it to a default width. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
-  width: 600px;
+  /* 630 - 30 of padding leaves the same 600px of content as before, so the
+     panel's outer width is unchanged at 646px including default body margins. */
+  width: 630px;
   padding: 15px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -20,6 +36,11 @@ body {
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  /* Its own scrollbars, for a transcript longer than the box. */
+  overflow: auto;
+  /* The drag handle cannot make a fixed panel any bigger, so dragging it only
+     ever pushed content out of view. */
+  resize: none;
 }
 
 .header {
@@ -67,16 +88,19 @@ body {
   background-color: #218838;
 }
 
-#settingsButton {
+#settingsButton,
+#windowButton {
   background-color: #6c757d;
   padding: 8px;
 }
 
-#settingsButton:hover {
+#settingsButton:hover,
+#windowButton:hover {
   background-color: #5a6268;
 }
 
-#settingsButton svg {
+#settingsButton svg,
+#windowButton svg {
   width: 16px;
   height: 16px;
 }
@@ -95,6 +119,53 @@ body {
 #status.error {
   background-color: #f8d7da;
   color: #721c24;
+}
+
+/* The detached window is where a resizable view has to live, because Firefox
+   will not let a toolbar panel be resized. The fluid layout is scoped to it so
+   the panel above keeps its fixed, known-good sizing. */
+body.windowed {
+  width: 100%;
+  /* Below the 500px the window opens at, deliberately. A CSS minimum applies to
+     the viewport while a window size is measured on the outside, so a minimum
+     equal to the window's own floor overflows by the width of the chrome: the
+     scrollbar that appears then steals width and triggers a second scrollbar,
+     which is the cascade this whole file exists to avoid. The slack absorbs it,
+     and means dragging a little under the opening size still does not scroll. */
+  min-width: 420px;
+  /* No min-height to go with it: 100vh is the viewport exactly, so the body can
+     never overflow vertically on its own, and the transcript's own min-height
+     below sets the point where a scrollbar honestly becomes necessary. */
+  height: 100vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body.windowed .header,
+body.windowed #jsonTitle,
+body.windowed #status,
+body.windowed .timestamp {
+  flex: 0 0 auto;
+}
+
+body.windowed .header {
+  /* Wraps rather than overflowing once the window nears its minimum width. */
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+body.windowed #jsonContent {
+  /* Absorbs the leftover height, so the transcript grows and shrinks with the
+     window and the timestamp below it moves with it, instead of both being
+     pinned to a 400px box. */
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 120px;
+}
+
+body.windowed .timestamp {
+  padding-top: 8px;
 }
 
 .show {

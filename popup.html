@@ -2,6 +2,8 @@
 <html>
 <head>
   <meta charset="utf-8"/>
+  <!-- Names the detached window in its title bar; unused by the toolbar panel. -->
+  <title>Claude &#8594; Markdown</title>
   <link rel="stylesheet" href="popup.css"/>
 </head>
 <body>
@@ -9,6 +11,13 @@
     <h3>Claude → Markdown</h3>
     <div class="button-container">
       <button id="refreshButton" class="button">Refresh Page</button>
+      <button id="windowButton" class="button" title="Open in a resizable window">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 3h6v6"></path>
+          <path d="M21 3l-9 9"></path>
+          <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"></path>
+        </svg>
+      </button>
       <button id="gistButton" class="button hide">Create Gist</button>
       <button id="settingsButton" class="button" title="Configure GitHub Token">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -23,6 +32,8 @@
   <textarea id="jsonContent" readonly></textarea>
   <div class="timestamp" id="timestamp"></div>
   <div id="claude-id" class="hide"></div>
+  <script src="debug.js"></script>
+  <script src="conversations.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
